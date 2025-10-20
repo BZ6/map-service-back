@@ -1,0 +1,4 @@
+flask
+gunicorn
+watchdog
+flask_cors
