@@ -1,4 +1,3 @@
-flask
-gunicorn
-watchdog
-flask_cors
+fastapi[standard]
+pydantic
+python-multipart
