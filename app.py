@@ -1,9 +1,8 @@
 # app.py
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Dict, Any, Optional
 from mock_users import MOCK_USERS
+from models import *
 
 app = FastAPI(title="Auth API", version="1.0.0")
 
@@ -21,45 +20,6 @@ app.add_middleware(
 	allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 	allow_headers=["Content-Type"],
 )
-
-# Модели данных
-class UserBase(BaseModel):
-	name: str
-	lastName: str
-	login: str
-
-class RegisterRequest(BaseModel):
-	name: str
-	lastName: str
-	login: str
-	password: str
-
-class RegisterResponse(BaseModel):
-	status: str
-	user: UserBase
-
-class LoginRequest(BaseModel):
-	login: str
-	password: str
-
-class LoginResponse(BaseModel):
-	status: str
-	user: UserBase
-	token: str
-
-class ErrorResponse(BaseModel):
-	status: str
-	message: str
-
-class EmailConfirmRequest(BaseModel):
-	code: str
-
-class EmailConfirmResponse(BaseModel):
-	status: str
-	code: str
-
-class ExampleResponse(BaseModel):
-	message: str
 
 @app.get("/api/example", response_model=ExampleResponse)
 async def example():
@@ -117,6 +77,38 @@ async def email_confirm(confirm_data: EmailConfirmRequest):
 	return EmailConfirmResponse(
 		status="success",
 		code=confirm_data.code
+	)
+
+# CRUDошлепство в рамках задач
+@app.get("/api/builds/by-name/{name}", response_model=BuildResponse, status_code=status.HTTP_200_OK)
+async def build_by_name(name: str):
+	return BuildResponse(
+		status="success",
+		build=BuildBase(
+			ID="1",
+			name=name,
+			category="dsfs",
+			opening_hours="asdfsa",
+		)
+	)
+
+@app.get("/api/builds/names/by-type/{type}", response_model=BuildNamesResponse, status_code=status.HTTP_200_OK)
+async def build_names_by_type(type: str):
+	return BuildNamesResponse(
+		status="success",
+		names=["asfd", "sdfsdfasd", "dfgdg"]
+	)
+
+@app.get("/api/builds/{id}", response_model=DateiledBuildResponse, status_code=status.HTTP_200_OK)
+async def build_by_id(id: str):
+	return DateiledBuildResponse(
+		status="success",
+		build=DateiledBuildBase(
+			ID=id,
+			name="sadfjsf",
+			category="dsfs",
+			opening_hours="asdfsa",
+		)
 	)
 
 if __name__ == "__main__":
