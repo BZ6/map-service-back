@@ -1,8 +1,12 @@
 # app.py
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from mock_users import MOCK_USERS
 from models import *
+from bd_models import *
+from config import get_async_session
 
 app = FastAPI(title="Auth API", version="1.0.0")
 
@@ -100,15 +104,21 @@ async def build_names_by_type(type: str):
 	)
 
 @app.get("/api/builds/{id}", response_model=DateiledBuildResponse, status_code=status.HTTP_200_OK)
-async def build_by_id(id: str):
+async def build_by_id(
+		id: str,
+		session: AsyncSession = Depends(get_async_session)
+	):
+	try:
+		build_id = int(id)
+	except ValueError:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
+
+	build = await session.get(Build, build_id)
+	if not build:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Build not found")
 	return DateiledBuildResponse(
 		status="success",
-		build=DateiledBuildBase(
-			ID=id,
-			name="sadfjsf",
-			category="dsfs",
-			opening_hours="asdfsa",
-		)
+		build=build.model_dump()
 	)
 
 if __name__ == "__main__":

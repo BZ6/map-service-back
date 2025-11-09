@@ -8,16 +8,23 @@ class UserBase(BaseModel):
 	login: str
 
 class BuildBase(BaseModel):
-	ID: str
+	id: str
 	name: str
 	category: str
 	opening_hours: str
 
 class DateiledBuildBase(BaseModel):
-	ID: str
-	name: str
-	category: str
-	opening_hours: str
+	id: int
+	name: Optional[str] = None
+	category: Optional[str] = None
+	opening_hours: Optional[str] = None
+	website: Optional[str] = None
+	phone: Optional[str] = None
+	addr_street: Optional[str] = None
+	addr_housenumber: Optional[str] = None
+	geometry: Optional[str] = None
+	longtitude: Optional[str] = None
+	latitude: Optional[str] = None
 
 
 # Модели запроса и ответа
