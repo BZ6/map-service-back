@@ -87,7 +87,7 @@ async def email_confirm(confirm_data: EmailConfirmRequest):
 
 # CRUDошлепство в рамках задач
 @app.get("/api/builds/by-name/{name}", response_model=BuildResponse, status_code=status.HTTP_200_OK)
-async def build_by_name(
+async def get_build_by_name(
 		name: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
@@ -104,7 +104,7 @@ async def build_by_name(
 	)
 
 @app.get("/api/builds/names/by-category/{category}", response_model=BuildNamesResponse, status_code=status.HTTP_200_OK)
-async def build_names_by_type(
+async def get_build_names_by_category(
 		category: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
@@ -129,7 +129,7 @@ async def get_builds_by_category(category: str):
 	return {'builds': [build for build in BUILDS_BY_CATEGORY if build['category'] == category]}
 
 @app.get("/api/builds/{id}", response_model=DateiledBuildResponse, status_code=status.HTTP_200_OK)
-async def build_by_id(
+async def get_build_by_id(
 		id: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
@@ -147,7 +147,7 @@ async def build_by_id(
 	)
 
 @app.get("/api/road/node/{id}", response_model=RoadNodeResponse, status_code=status.HTTP_200_OK)
-async def road_node_by_id(
+async def get_road_node_by_id(
 		id: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
@@ -165,7 +165,7 @@ async def road_node_by_id(
 	)
 
 @app.get("/api/road/rib/{id}", response_model=RoadRibResponse, status_code=status.HTTP_200_OK)
-async def road_rib_by_id(
+async def get_road_rib_by_id(
 		id: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
