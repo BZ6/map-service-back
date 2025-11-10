@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from mock_category_build import CATEGORIES, BUILDS_BY_CATEGORY
 from mock_users import MOCK_USERS
 from models import *
 from bd_models import *
@@ -102,6 +103,14 @@ async def build_names_by_type(type: str):
 		status="success",
 		names=["asfd", "sdfsdfasd", "dfgdg"]
 	)
+
+@app.get("/api/builds/category", response_model=dict)
+async def get_all_categories():
+	return {'categories': CATEGORIES}
+
+@app.get("/api/builds/category/{category}", response_model=dict)
+async def get_builds_by_category(category: str):
+	return {'builds': [build for build in BUILDS_BY_CATEGORY if build['category'] == category]}
 
 @app.get("/api/builds/{id}", response_model=DateiledBuildResponse, status_code=status.HTTP_200_OK)
 async def build_by_id(
