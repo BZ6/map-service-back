@@ -146,6 +146,42 @@ async def build_by_id(
 		build=build.model_dump()
 	)
 
+@app.get("/api/road/node/{id}", response_model=RoadNodeResponse, status_code=status.HTTP_200_OK)
+async def road_node_by_id(
+		id: str,
+		session: AsyncSession = Depends(get_async_session)
+	):
+	try:
+		node_id = int(id)
+	except ValueError:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
+
+	node = await session.get(RoadNode, node_id)
+	if not node:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Road node not found")
+	return RoadNodeResponse(
+		status="success",
+		road_node=node.model_dump()
+	)
+
+@app.get("/api/road/rib/{id}", response_model=RoadRibResponse, status_code=status.HTTP_200_OK)
+async def road_rib_by_id(
+		id: str,
+		session: AsyncSession = Depends(get_async_session)
+	):
+	try:
+		rib_id = int(id)
+	except ValueError:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
+
+	rib = await session.get(RoadRib, rib_id)
+	if not rib:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Road rib not found")
+	return RoadRibResponse(
+		status="success",
+		road_rib=rib.model_dump()
+	)
+
 if __name__ == "__main__":
 	import uvicorn
 	uvicorn.run(app, host="0.0.0.0", port=5000)
