@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select, distinct
 
 from mock_category_build import CATEGORIES, BUILDS_BY_CATEGORY
 from mock_users import MOCK_USERS
@@ -86,22 +87,37 @@ async def email_confirm(confirm_data: EmailConfirmRequest):
 
 # CRUDошлепство в рамках задач
 @app.get("/api/builds/by-name/{name}", response_model=BuildResponse, status_code=status.HTTP_200_OK)
-async def build_by_name(name: str):
+async def build_by_name(
+		name: str,
+		session: AsyncSession = Depends(get_async_session)
+	):
+	query = select(Build).where(Build.name == name)
+	result = await session.execute(query)
+	build = result.scalars().first()
+
+	if not build:
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Building not found")
+
 	return BuildResponse(
 		status="success",
-		build=BuildBase(
-			ID="1",
-			name=name,
-			category="dsfs",
-			opening_hours="asdfsa",
-		)
+		build=build.model_dump()
 	)
 
-@app.get("/api/builds/names/by-type/{type}", response_model=BuildNamesResponse, status_code=status.HTTP_200_OK)
-async def build_names_by_type(type: str):
+@app.get("/api/builds/names/by-category/{category}", response_model=BuildNamesResponse, status_code=status.HTTP_200_OK)
+async def build_names_by_type(
+		category: str,
+		session: AsyncSession = Depends(get_async_session)
+	):
+	query = select(distinct(Build.name)).where(
+		(Build.category == category) & 
+		(Build.name.isnot(None))
+	).order_by(Build.name)
+	result = await session.execute(query)
+	names = result.scalars().all()
+	
 	return BuildNamesResponse(
 		status="success",
-		names=["asfd", "sdfsdfasd", "dfgdg"]
+		names=names
 	)
 
 @app.get("/api/builds/category", response_model=dict)

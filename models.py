@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
+from decimal import Decimal
 
 # Модели данных
 class UserBase(BaseModel):
@@ -8,12 +9,6 @@ class UserBase(BaseModel):
 	login: str
 
 class BuildBase(BaseModel):
-	id: str
-	name: str
-	category: str
-	opening_hours: str
-
-class DateiledBuildBase(BaseModel):
 	id: int
 	name: Optional[str] = None
 	category: Optional[str] = None
@@ -26,6 +21,17 @@ class DateiledBuildBase(BaseModel):
 	longtitude: Optional[str] = None
 	latitude: Optional[str] = None
 
+class RoadNodeBase(BaseModel):
+	node_id: int
+	longtitude: Optional[Decimal] = None
+	latitude: Optional[Decimal] = None
+
+class RoadRibBase(BaseModel):
+	id: int
+	start_node_id: Optional[int] = None
+	end_node_id: Optional[int] = None
+	length: Optional[Decimal] = None
+	max_speed: Optional[str] = None
 
 # Модели запроса и ответа
 class RegisterRequest(BaseModel):
@@ -72,4 +78,12 @@ class BuildResponse(BaseModel):
 
 class DateiledBuildResponse(BaseModel):
 	status: str
-	build: DateiledBuildBase
+	build: BuildBase
+
+class RoadNodeResponse(BaseModel):
+	status: str
+	road_node: RoadNodeBase
+
+class RoadRibResponse(BaseModel):
+	status: str
+	road_rib: RoadRibBase
