@@ -120,11 +120,11 @@ async def build_names_by_type(
 		names=names
 	)
 
-@app.get("/api/builds/category", response_model=dict)
+@app.get("/api/builds/categories", response_model=dict)
 async def get_all_categories():
 	return {'categories': CATEGORIES}
 
-@app.get("/api/builds/category/{category}", response_model=dict)
+@app.get("/api/builds/by-category/{category}", response_model=dict)
 async def get_builds_by_category(category: str):
 	return {'builds': [build for build in BUILDS_BY_CATEGORY if build['category'] == category]}
 
