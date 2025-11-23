@@ -1,3 +1,5 @@
+from unicodedata import category
+
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 from decimal import Decimal
@@ -71,6 +73,14 @@ class ExampleResponse(BaseModel):
 class BuildNamesResponse(BaseModel):
 	status: str
 	names: list[str]
+
+class CategoriesResponse(BaseModel):
+    status: str
+    categories: list[str]
+
+class BuildsListResponse(BaseModel):
+    status: str
+    builds: list[BuildBase]
 
 class BuildResponse(BaseModel):
 	status: str

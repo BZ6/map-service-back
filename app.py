@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, distinct
 
-from mock_category_build import CATEGORIES, BUILDS_BY_CATEGORY
 from mock_users import MOCK_USERS
 from models import *
 from bd_models import *
@@ -120,13 +119,41 @@ async def get_build_names_by_category(
 		names=names
 	)
 
-@app.get("/api/builds/categories", response_model=dict)
-async def get_all_categories():
-	return {'categories': CATEGORIES}
+@app.get("/api/builds/categories", response_model=CategoriesResponse, status_code=status.HTTP_200_OK)
+async def get_all_categories(
+    session: AsyncSession = Depends(get_async_session)
+):
+    query = select(distinct(Build.category)).where(
+        Build.category.isnot(None)
+    ).order_by(Build.category)
 
-@app.get("/api/builds/by-category/{category}", response_model=dict)
-async def get_builds_by_category(category: str):
-	return {'builds': [build for build in BUILDS_BY_CATEGORY if build['category'] == category]}
+    result = await session.execute(query)
+    categories = result.scalars().all()
+
+    return CategoriesResponse(
+        status="success",
+        categories=categories
+    )
+
+@app.get("/api/builds/by-category/{category}", response_model=BuildsListResponse, status_code=status.HTTP_200_OK)
+async def get_builds_by_category(
+    category: str,
+    session: AsyncSession = Depends(get_async_session)
+):
+    if category:
+        query = select(Build).where(Build.category == category)
+    else:
+        query = select(Build)
+
+    result = await session.execute(query)
+    builds = result.scalars().all()
+
+    builds_data = [build.model_dump() for build in builds]
+
+    return BuildsListResponse(
+        status="success",
+        builds=builds_data
+    )
 
 @app.get("/api/builds/{id}", response_model=DateiledBuildResponse, status_code=status.HTTP_200_OK)
 async def get_build_by_id(
