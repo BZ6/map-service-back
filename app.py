@@ -85,21 +85,18 @@ async def email_confirm(confirm_data: EmailConfirmRequest):
 	)
 
 # CRUDошлепство в рамках задач
-@app.get("/api/builds/by-name/{name}", response_model=BuildResponse, status_code=status.HTTP_200_OK)
+@app.get("/api/builds/by-name/{name}", response_model=BuildsListResponse, status_code=status.HTTP_200_OK)
 async def get_build_by_name(
 		name: str,
 		session: AsyncSession = Depends(get_async_session)
 	):
 	query = select(Build).where(Build.name == name)
 	result = await session.execute(query)
-	build = result.scalars().first()
+	builds = result.scalars().all()
 
-	if not build:
-		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Building not found")
-
-	return BuildResponse(
+	return BuildsListResponse(
 		status="success",
-		build=build.model_dump()
+		builds=[build.model_dump() for build in builds]
 	)
 
 @app.get("/api/builds/names/by-category/{category}", response_model=BuildNamesResponse, status_code=status.HTTP_200_OK)
