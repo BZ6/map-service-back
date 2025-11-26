@@ -3,6 +3,10 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, distinct
+from schemas_iso import IsoRequest, IsoResponse, IsoPolygon
+from services.iso_service import get_graph_cached, nearest_node_kdtree, build_isochrones_from_graph
+from config import get_async_session
+from bd_models import Build
 
 from mock_users import MOCK_USERS
 from models import *
@@ -206,6 +210,69 @@ async def get_road_rib_by_id(
 		road_rib=rib.model_dump()
 	)
 
+@app.post("/api/isochrones", response_model=IsoResponse)
+async def isochrones_api(data: IsoRequest, session: AsyncSession = Depends(get_async_session)):
+    if data.time is None or data.time <= 0 or data.time > 15:
+        raise HTTPException(status_code=400, detail="time must be >0 and <= 15")
+
+    if not (data.points or data.byCategory or data.byName):
+        raise HTTPException(status_code=400, detail="send points or byCategory or byName")
+
+    G = await get_graph_cached(session)
+
+    if not hasattr(G, "kdtree") or G.kdtree is None:
+        raise HTTPException(status_code=500, detail="Road graph KD-tree missing")
+
+    start_coords = []
+
+    if data.points:
+        for p in data.points:
+            start_coords.append((p.lon, p.lat))
+
+    if data.byCategory:
+        q = await session.execute(select(Build).where(Build.category == data.byCategory))
+        for b in q.scalars().all():
+            try:
+                lon = float(b.longtitude.replace(",", "."))
+                lat = float(b.latitude.replace(",", "."))
+                start_coords.append((lon, lat))
+            except:
+                continue
+
+    if data.byName:
+        q = await session.execute(select(Build).where(Build.name == data.byName))
+        for b in q.scalars().all():
+            try:
+                lon = float(b.longtitude.replace(",", "."))
+                lat = float(b.latitude.replace(",", "."))
+                start_coords.append((lon, lat))
+            except:
+                continue
+
+    if not start_coords:
+        raise HTTPException(status_code=404, detail="No start points found")
+
+    start_nodes = set()
+    for lon, lat in start_coords:
+        nid = nearest_node_kdtree(G, lon, lat)
+        if nid:
+            start_nodes.add(nid)
+
+    if not start_nodes:
+        raise HTTPException(status_code=404, detail="No nearest nodes in road graph")
+
+    results = build_isochrones_from_graph(G, list(start_nodes), data.time)
+
+    resp_polys = []
+    for minutes, geom in results:
+        if hasattr(geom, "geom_type"):
+            geom = mapping(geom)
+        resp_polys.append(IsoPolygon(minutes=minutes, polygon=geom))
+
+    return IsoResponse(status="success", isochrones=resp_polys)
+
+
 if __name__ == "__main__":
 	import uvicorn
 	uvicorn.run(app, host="0.0.0.0", port=5000)
+
