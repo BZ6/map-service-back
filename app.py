@@ -3,9 +3,11 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, distinct
+from contextlib import asynccontextmanager
+
 from schemas_iso import IsoRequest, IsoResponse, IsoPolygon
-from services.iso_service import get_graph_cached, nearest_node_kdtree, build_isochrones_from_graph
-from config import get_async_session
+from services.iso_service import isochrone_service
+from config import get_async_session, AsyncSessionLocal
 from bd_models import Build
 
 from mock_users import MOCK_USERS
@@ -13,7 +15,21 @@ from models import *
 from bd_models import *
 from config import get_async_session
 
-app = FastAPI(title="Auth API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with AsyncSessionLocal() as session:
+        try:
+            await isochrone_service.initialize(session)
+            print(f" Граф дорог успешно загружен в кэш")
+        except Exception as e:
+            print(f"Ошибка при загрузке графа дорог: {e}")
+            import traceback
+            traceback.print_exc()
+    yield
+
+
+app = FastAPI(title="Auth API", version="1.0.0", lifespan=lifespan)
 
 # Настройка CORS
 origins = [
@@ -211,17 +227,13 @@ async def get_road_rib_by_id(
 	)
 
 @app.post("/api/isochrones", response_model=IsoResponse)
-async def isochrones_api(data: IsoRequest, session: AsyncSession = Depends(get_async_session)):
+async def isochrones_api(data: IsoRequest, session: AsyncSession = Depends(get_async_session)
+):
     if data.time is None or data.time <= 0 or data.time > 15:
         raise HTTPException(status_code=400, detail="time must be >0 and <= 15")
 
     if not (data.points or data.byCategory or data.byName):
         raise HTTPException(status_code=400, detail="send points or byCategory or byName")
-
-    G = await get_graph_cached(session)
-
-    if not hasattr(G, "kdtree") or G.kdtree is None:
-        raise HTTPException(status_code=500, detail="Road graph KD-tree missing")
 
     start_coords = []
 
@@ -251,25 +263,27 @@ async def isochrones_api(data: IsoRequest, session: AsyncSession = Depends(get_a
 
     if not start_coords:
         raise HTTPException(status_code=404, detail="No start points found")
+    
+    try:
+        isochrones_data = await isochrone_service.calculate_isochrones(
+            points=start_coords,
+            time_minutes=data.time
+        )
+        
+        resp_polys = [
+            IsoPolygon(minutes=item["minutes"], polygon=item["polygon"])
+            for item in isochrones_data
+        ]
+        
+        return IsoResponse(status="success", isochrones=resp_polys)
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    start_nodes = set()
-    for lon, lat in start_coords:
-        nid = nearest_node_kdtree(G, lon, lat)
-        if nid:
-            start_nodes.add(nid)
-
-    if not start_nodes:
-        raise HTTPException(status_code=404, detail="No nearest nodes in road graph")
-
-    results = build_isochrones_from_graph(G, list(start_nodes), data.time)
-
-    resp_polys = []
-    for minutes, geom in results:
-        if hasattr(geom, "geom_type"):
-            geom = mapping(geom)
-        resp_polys.append(IsoPolygon(minutes=minutes, polygon=geom))
-
-    return IsoResponse(status="success", isochrones=resp_polys)
 
 
 if __name__ == "__main__":
