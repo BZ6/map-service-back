@@ -21,3 +21,14 @@ class IsoResponse(BaseModel):
     isochrones: List[IsoPolygon]
 
 
+class PointInput(BaseModel):
+    lat: float
+    lon: float
+
+class PointsIsoRequest(BaseModel):
+    time: int
+    points: List[PointInput]
+
+class PointsIsoResponse(BaseModel):
+    status: str
+    isochrones: List[IsoPolygon]
