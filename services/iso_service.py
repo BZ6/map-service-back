@@ -80,8 +80,25 @@ class IsochroneService:
         dist, idx = self._graph.kdtree.query([lon, lat], k=1)
         return self._graph.node_index_to_id[int(idx)]
     
-    def _build_isochrones_from_graph(self, start_nodes: List[int], time_min: int):
-        """Построение изохрон из графа"""
+    def _build_isochrones_from_graph(self, start_nodes: List[int], time_min: int) -> List[Tuple[int, dict]]:
+        """
+        Строит изохроны доступности.
+        
+        Args:
+            start_nodes: список ID начальных узлов графа
+            time_min: время в минутах
+            
+        Returns:
+            List[Tuple[int, dict]]: список из одного кортежа (time_min, геометрия)
+            
+        Формат геометрии: GeoJSON (shapely.mapping)
+        Пример: [(10, {"type": "Polygon", "coordinates": [[[lon,lat],...]]})]
+        
+        Полигоны:
+        - GeoJSON словарь с ключами "type" и "coordinates"
+        - type: "Polygon" или "MultiPolygon"
+        - coordinates: вложенные списки координат [долгота, широта]
+        """
         if self._graph is None:
             return []
         
