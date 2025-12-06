@@ -294,19 +294,18 @@ async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(
         raise HTTPException(status_code=400, detail="send category")
 
     try:
-        # достаем из бд критерии и строения под эти критерии
+        # достаем из бд критерии и строения
 
         # тут идет логика Миши
 
         # тут идет логика Лизы
 
-        # пусть центра будут списком картежей с координатами
-        #centers = 
+        # пусть центры будут списком картежей с координатами
+        #centers =
+        # поменяйте как нужно чтобы получился список картежей с координатами и критериями (возможно один и тот же критерий для всехё)
+        points_with_critery = [tuple(point.x, point.y, critery) for point in points]
 
-        # поменяйте как нужно чтобы получился список картежей с координатами и категорией
-        points_with_category = [tuple(point.x, point.y, data.byCategory) for point in points]
-
-        result = await calculate_attractions_by_category(centers, points_with_category)
+        result = await calculate_attractions_by_category(centers, points_with_critery)
         points = []
         for i in range(len(result)):
             if result[i][2] > 5:
