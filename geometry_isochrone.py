@@ -155,12 +155,12 @@ def calculate_attractions(polygon: Polygon, points: list[tuple[float, float, str
 
 async def build_isochrone_polygon(x: float, y: float, time: int = 7) -> Polygon:
 	isochrones_data = await isochrone_service.calculate_isochrones([(x, y)], time)
-	isochrone_polygon = isochrones_data[0][1]
+	isochrone_polygon = isochrones_data[0]["polygon"]
 
 	if isochrone_polygon["type"] == "MultiPolygon":
 		raise ValueError("MultiPolygon не поддерживается")
 
-	isochrone_polygon_vectors = [Vector(coordinate[0], coordinate[1]) for coordinate in isochrone_polygon["coordinates"]]
+	isochrone_polygon_vectors = [Vector(coordinate[0], coordinate[1]) for coordinate in isochrone_polygon["coordinates"][0]]
 
 	return Polygon(Vector(x, y), isochrone_polygon_vectors)
 
@@ -169,8 +169,9 @@ async def calculate_attractions_by_category(centers: list[tuple[float, float]], 
 	for x, y in centers:
 		polygon = await build_isochrone_polygon(x, y)
 		score = calculate_attractions(polygon, points)
-		result.append(x, y, score)
+		result.append(tuple(x, y, score))
 
+	return result
 
 
 def in_polygon_default():

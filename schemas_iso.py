@@ -6,13 +6,23 @@ class IsoPoint(BaseModel):
     lat: float
     lon: float
 
+class IsoPointAndScore(BaseModel):
+    id: int
+    lat: float
+    lon: float
+    score: int
+
 class IsoPolygon(BaseModel):
     minutes: int
-    polygon: Dict[str, Any]  
+    polygon: Dict[str, Any]
 
 class IsoRequest(BaseModel):
     time: int
     points: Optional[List[IsoPoint]] = None
+    byCategory: Optional[str] = None
+    byName: Optional[str] = None
+
+class IsoScoreRequest(BaseModel):
     byCategory: Optional[str] = None
     byName: Optional[str] = None
 
@@ -32,3 +42,7 @@ class PointsIsoRequest(BaseModel):
 class PointsIsoResponse(BaseModel):
     status: str
     isochrones: List[IsoPolygon]
+
+class PointsAndScoresResponse(BaseModel):
+    status: str
+    points: List[IsoPointAndScore]
