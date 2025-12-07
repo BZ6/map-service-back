@@ -32,3 +32,14 @@ class RoadRib(SQLModel, table=True):
 	end_node_id: Optional[int] = Field(default=None, foreign_key="road_nodes.node_id")
 	length: Optional[Decimal] = Field(default=None, max_digits=20, decimal_places=8)
 	max_speed: Optional[str] = Field(default=None, max_length=30)
+
+class Criteria(SQLModel, table=True):
+    __tablename__ = "criteries"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: Optional[str] = Field(default=None, max_length=255)
+    category: Optional[str] = Field(default=None, max_length=100)
+    is_antiattractive: bool = Field(default=False)
+    geometry: Optional[str] = Field(default=None)
+    longitude: Optional[str] = Field(default=None, max_digits=20, decimal_places=8)
+    latitude: Optional[str] = Field(default=None, max_digits=20, decimal_places=8)
