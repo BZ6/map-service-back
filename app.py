@@ -1,11 +1,12 @@
 # app.py
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from geometry_isochrone import calculate_attractions_by_category
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, distinct
 from contextlib import asynccontextmanager
 
-from schemas_iso import IsoRequest, IsoResponse, IsoPolygon
+from schemas_iso import IsoRequest, IsoResponse, IsoPolygon, IsoPointAndScore, IsoScoreRequest, PointsAndScoresResponse
 from services.iso_service import isochrone_service
 from config import get_async_session, AsyncSessionLocal
 from bd_models import Build
@@ -284,6 +285,40 @@ async def isochrones_api(data: IsoRequest, session: AsyncSession = Depends(get_a
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/isochrones/score", response_model=PointsAndScoresResponse)
+async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(get_async_session)
+):
+    if data.byName:
+        raise HTTPException(status_code=400, detail="calculate score by name not suported yet")
+    if not data.byCategory:
+        raise HTTPException(status_code=400, detail="send category")
+
+    try:
+        # достаем из бд критерии и строения
+
+        # тут идет логика Миши
+
+        # тут идет логика Лизы
+
+        # пусть центры будут списком картежей с координатами
+        #centers =
+        # поменяйте как нужно чтобы получился список картежей с координатами и критериями (возможно один и тот же критерий для всехё)
+        points_with_critery = [tuple(point.x, point.y, critery) for point in points]
+
+        result = await calculate_attractions_by_category(centers, points_with_critery)
+        points = []
+        for i in range(len(result)):
+            if result[i][2] > 5:
+                points.append(IsoPointAndScore(i + 1, result[i][0], result[i][1], result[i][2]))
+
+        return PointsAndScoresResponse(status="success", points=points)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
