@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 from shapely.geometry import Polygon, Point
 
 
-from app import (
+from buffer_intersection_service import (
     add_ids_to_polygons,
     convert_to_shapely_polygons,
     build_spatial_index,
