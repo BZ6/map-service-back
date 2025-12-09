@@ -7,6 +7,7 @@ asyncpg
 python-dotenv
 
 shapely
+rtree
 networkx
 numpy
 scipy

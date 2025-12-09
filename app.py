@@ -1,4 +1,6 @@
 # app.py
+import math
+
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from geometry_isochrone import calculate_attractions_by_category
@@ -15,12 +17,15 @@ from mock_users import MOCK_USERS
 from models import *
 from bd_models import *
 from config import get_async_session
+from buffer_intersection_service import find_buffer_intersection_centers
+
+from shapely.geometry import Polygon, Point
+import rtree
 
 from services.buffer_service import build_buffers_for_criteries
 from services.get_criteries import get_all_criteries_light
 
 import logging
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -308,9 +313,22 @@ async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(
         logger.info(f"buffers: {buffers}")
 
         # тут идет логика Лизы
+        MIN_INTERSECTION = 2
+        MAX_POINTS = 30
+
+        centers_data = find_buffer_intersection_centers(
+            buffers,
+            min_intersections=MIN_INTERSECTION,
+            max_points=MAX_POINTS,
+        )
+
+        centers = []
+        for center in centers_data:
+            lon, lat = center['coordinates']
+            centers.append((lon, lat))
 
         # пусть центры будут списком картежей с координатами
-        #centers =
+        # centers =
         # поменяйте как нужно чтобы получился список картежей с координатами и критериями (возможно один и тот же критерий для всехё)
         # points_with_critery = [tuple(point.x, point.y, critery) for point in points]
         points_with_critery = [
@@ -319,7 +337,6 @@ async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(
 						if c.get("longitude") is not None and c.get("latitude") is not None
 				]
         centers = [(30.325130385154402, 59.9809882912623), (30.240526389614843, 59.9901406558122)] 
-
         logger.info(f"points_with_critery: {points_with_critery}")
         result = await calculate_attractions_by_category(centers, points_with_critery)
         points = []
@@ -347,4 +364,3 @@ async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(
 if __name__ == "__main__":
 	import uvicorn
 	uvicorn.run(app, host="0.0.0.0", port=5000)
-
