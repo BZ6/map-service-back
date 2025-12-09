@@ -77,7 +77,8 @@ class IsochroneService:
     def _nearest_node_kdtree(self, lon: float, lat: float) -> Optional[int]:
         if self._graph is None or not hasattr(self._graph, "kdtree") or self._graph.kdtree is None:
             return None
-        dist, idx = self._graph.kdtree.query([lon, lat], k=1)
+        # Попробуйте поменять местами
+        dist, idx = self._graph.kdtree.query([lat, lon], k=1)  # ← [lat, lon]
         return self._graph.node_index_to_id[int(idx)]
     
     def _build_isochrones_from_graph(self, start_nodes: List[int], time_min: int) -> List[Tuple[int, dict]]:
@@ -138,7 +139,6 @@ class IsochroneService:
         points: List[Tuple[float, float]],
         time_minutes: int
     ) -> List[Dict[str, Any]]:
-
         if not self._initialized:
             raise RuntimeError("IsochroneService не инициализирован. Запустите initialize() при старте приложения.")
         
