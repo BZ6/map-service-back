@@ -1,5 +1,5 @@
 from services.iso_service import isochrone_service
-
+from shapely.geometry import Point, Polygon as ShapelyPolygon
 
 class Vector:
 	"""Класс для работы с 2D векторами."""
@@ -127,6 +127,11 @@ class Polygon:
 			is_in = is_in or t.is_point_in_triangle_barycentric(p)
 
 		return is_in
+	
+	def point_in_isochrone(point_lon, point_lat, polygon_vectors):
+		coords = [(v.x, v.y) for v in polygon_vectors]
+		poly = ShapelyPolygon(coords)
+		return poly.contains(Point(point_lon, point_lat))
 
 def attraction_score_by_category(atractive_category: str):
 	match atractive_category:
@@ -141,37 +146,35 @@ def attraction_score_by_category(atractive_category: str):
 		case "power": return -8
 		case _: raise ValueError("такая категория не поддерживается")
 
-def calculate_attraction(polygon: Polygon, point: Vector, atractive_category: str):
-	if polygon.is_point_in_polygon(point):
-		return attraction_score_by_category(atractive_category)
-	return 0
+def calculate_attraction(polygon_vectors: list[tuple[float, float]], point: tuple[float, float], atractive_category: str):
+    if ShapelyPolygon(polygon_vectors).contains(Point(point[0], point[1])):
+        return attraction_score_by_category(atractive_category)
+    return 0
 
-def calculate_attractions(polygon: Polygon, points: list[tuple[float, float, str]]):
-	acc_score = 0
-	for x, y, atractive_category in points:
-		acc_score += calculate_attraction(polygon, Vector(x, y), atractive_category)
+def calculate_attractions(polygon_vectors: list[tuple[float, float]], points: list[tuple[float, float, str]]):
+    acc_score = 0
+    poly = ShapelyPolygon(polygon_vectors)
+    for x, y, atractive_category in points:
+        if poly.contains(Point(x, y)):
+            acc_score += attraction_score_by_category(atractive_category)
+    return acc_score
 
-	return acc_score
+async def build_isochrone_polygon(x: float, y: float, time: int = 7):
+    isochrones_data = await isochrone_service.calculate_isochrones([(x, y)], time)
+    isochrone_polygon = isochrones_data[0]["polygon"]
 
-async def build_isochrone_polygon(x: float, y: float, time: int = 7) -> Polygon:
-	isochrones_data = await isochrone_service.calculate_isochrones([(x, y)], time)
-	isochrone_polygon = isochrones_data[0]["polygon"]
+    if isochrone_polygon["type"] == "MultiPolygon":
+        raise ValueError("MultiPolygon не поддерживается")
 
-	if isochrone_polygon["type"] == "MultiPolygon":
-		raise ValueError("MultiPolygon не поддерживается")
+    return [tuple(coord) for coord in isochrone_polygon["coordinates"][0]]
 
-	isochrone_polygon_vectors = [Vector(coordinate[0], coordinate[1]) for coordinate in isochrone_polygon["coordinates"][0]]
-
-	return Polygon(Vector(x, y), isochrone_polygon_vectors)
-
-async def calculate_attractions_by_category(centers: list[tuple[float, float]], points: list[tuple[float, float, str]]) -> list[tuple[float, float, int]]:
-	result = []
-	for x, y in centers:
-		polygon = await build_isochrone_polygon(x, y)
-		score = calculate_attractions(polygon, points)
-		result.append(tuple(x, y, score))
-
-	return result
+async def calculate_attractions_by_category(centers: list[tuple[float, float]], points: list[tuple[float, float, str]]):
+    result = []
+    for x, y in centers:
+        polygon_vectors = await build_isochrone_polygon(x, y)
+        score = calculate_attractions(polygon_vectors, points)
+        result.append((x, y, score))
+    return result
 
 
 def in_polygon_default():
