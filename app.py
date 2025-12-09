@@ -20,7 +20,6 @@ from config import get_async_session
 from buffer_intersection_service import find_buffer_intersection_centers
 
 from shapely.geometry import Polygon, Point
-import rtree
 
 from services.buffer_service import build_buffers_for_criteries
 from services.get_criteries import get_all_criteries_light
@@ -327,17 +326,12 @@ async def isochrones_api(data: IsoScoreRequest, session: AsyncSession = Depends(
             lon, lat = center['coordinates']
             centers.append((lon, lat))
 
-        # пусть центры будут списком картежей с координатами
-        # centers =
-        # поменяйте как нужно чтобы получился список картежей с координатами и критериями (возможно один и тот же критерий для всехё)
-        # points_with_critery = [tuple(point.x, point.y, critery) for point in points]
         points_with_critery = [
 						(c["longitude"], c["latitude"], c["category"])
 						for c in criteries
 						if c.get("longitude") is not None and c.get("latitude") is not None
 				]
-        centers = [(30.325130385154402, 59.9809882912623), (30.240526389614843, 59.9901406558122)] 
-        logger.info(f"points_with_critery: {points_with_critery}")
+
         result = await calculate_attractions_by_category(centers, points_with_critery)
         points = []
         for i in range(len(result)):

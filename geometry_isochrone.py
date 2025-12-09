@@ -169,12 +169,12 @@ async def build_isochrone_polygon(x: float, y: float, time: int = 7):
     return [tuple(coord) for coord in isochrone_polygon["coordinates"][0]]
 
 async def calculate_attractions_by_category(centers: list[tuple[float, float]], points: list[tuple[float, float, str]]):
-    result = []
-    for x, y in centers:
-        polygon_vectors = await build_isochrone_polygon(x, y)
-        score = calculate_attractions(polygon_vectors, points)
-        result.append((x, y, score))
-    return result
+		result = []
+		for x, y in centers:
+			polygon_vectors = await build_isochrone_polygon(x, y)
+			score = calculate_attractions(polygon_vectors, points)
+			result.append((x, y, score))
+		return result
 
 
 def in_polygon_default():

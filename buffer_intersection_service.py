@@ -175,52 +175,57 @@ def haversine_distance(lon1, lat1, lon2, lat2):
 
 def cluster_points(points, max_points=30, cluster_distance_km=0.05):
     """
-    Объединяет близко расположенные точки
+    Объединяет группу близких точек в один кластер.
+    Центр кластера — среднее значение координат точек.
     """
 
     if not points:
         return []
 
+    # Сортировка по весу — оставим
     sorted_points = sorted(points, key=lambda p: p['weight'], reverse=True)
 
     clustered = []
-    used_indices = set()
+    used = set()
 
-    for i, main_point in enumerate(sorted_points):
-        if i in used_indices:
+    for i, p in enumerate(sorted_points):
+        if i in used:
             continue
+
+        cluster = [p]
+        cluster_ids = set(p['buffer_ids'])
+
+        lon1, lat1 = p['coordinates']
+
+        # Находим все точки в радиусе
+        for j, q in enumerate(sorted_points[i + 1:], start=i + 1):
+            if j in used:
+                continue
+
+            lon2, lat2 = q['coordinates']
+            dist = haversine_distance(lon1, lat1, lon2, lat2)
+
+            if dist <= cluster_distance_km:
+                cluster.append(q)
+                cluster_ids.update(q['buffer_ids'])
+                used.add(j)
+
+        # Пересчитываем центр кластера как среднее значение координат
+        avg_lon = sum(pt['coordinates'][0] for pt in cluster) / len(cluster)
+        avg_lat = sum(pt['coordinates'][1] for pt in cluster) / len(cluster)
+
+        clustered.append({
+            'coordinates': [avg_lon, avg_lat],
+            'weight': len(cluster_ids),
+            'buffer_ids': list(cluster_ids),
+            'buffer_count': len(cluster_ids),
+            'clustered_points': len(cluster)
+        })
+
+        used.add(i)
 
         if len(clustered) >= max_points:
             break
-
-        cluster_buffer_ids = set(main_point['buffer_ids'])
-
-        close_points_indices = []
-        for j, other_point in enumerate(sorted_points[i + 1:], start=i + 1):
-            if j in used_indices:
-                continue
-
-            lon1, lat1 = main_point['coordinates']
-            lon2, lat2 = other_point['coordinates']
-            distance = haversine_distance(lon1, lat1, lon2, lat2)
-
-            if distance <= cluster_distance_km:
-                close_points_indices.append(j)
-                cluster_buffer_ids.update(other_point['buffer_ids'])
-
-        clustered_point = {
-            'coordinates': main_point['coordinates'],
-            'weight': len(cluster_buffer_ids),
-            'buffer_ids': list(cluster_buffer_ids),
-            'buffer_count': len(cluster_buffer_ids),
-            'clustered_points': 1 + len(close_points_indices)
-        }
-
-        clustered.append(clustered_point)
-
-        used_indices.add(i)
-        for idx in close_points_indices:
-            used_indices.add(idx)
 
     return clustered
 
